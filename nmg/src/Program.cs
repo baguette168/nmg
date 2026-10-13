@@ -14,6 +14,8 @@ public static class Program
         {
             case "generate":
                 return GenerateCommand.Run(args.Skip(1).ToArray());
+            case "probe":
+                return ProbeCommand.Run(args.Skip(1).ToArray());
             case "version":
                 Console.WriteLine("nmg v0.1.0 (.NET Memory-shell Generator)");
                 return 0;
