@@ -1,4 +1,4 @@
-﻿namespace NMG;
+namespace NMG;
 
 public static class Program
 {
@@ -17,7 +17,7 @@ public static class Program
             case "probe":
                 return ProbeCommand.Run(args.Skip(1).ToArray());
             case "version":
-                Console.WriteLine("nmg v0.1.0 (.NET Memory-shell Generator)");
+                Console.WriteLine("nmg v0.2.0 (.NET Memory-shell Generator)");
                 return 0;
             case "help":
             case "--help":
@@ -34,7 +34,7 @@ public static class Program
     static void PrintHelp()
     {
         Console.WriteLine("""
-            NMG (.NET Memory-shell Generator) v0.1.0
+            NMG (.NET Memory-shell Generator) v0.2.0
 
             Usage:
               nmg generate [options]    Generate memory shell payload
