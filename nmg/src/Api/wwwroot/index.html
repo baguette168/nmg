@@ -1,0 +1,292 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NMG — .NET Memory-shell Generator</title>
+<style>
+:root {
+  --bg: #0e0e0e;
+  --bg2: #141414;
+  --bg3: #1c1c1c;
+  --bg4: #2a2a2a;
+  --bd: rgba(255,255,255,.08);
+  --bd2: rgba(255,255,255,.05);
+  --tx: #fafafa;
+  --tx2: #9e9e9e;
+  --tx3: #616161;
+  --ok: #8bc4a4;
+  --err: #c48b8b;
+  --wrn: #c4b48b;
+  --info: #8bc4c4;
+  --shadow-pill: 0 0 0 .5px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.06), 0 1px 2px rgba(0,0,0,.4);
+  --shadow-inset: inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 .5px rgba(255,255,255,.04);
+  --mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--sans); font-size:13px; line-height:1.5; color:var(--tx); background:var(--bg); min-height:100vh; }
+a { color:var(--info); text-decoration:none; }
+
+/* Layout */
+.app { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+.sidebar { background:var(--bg2); border-right:1px solid var(--bd); padding:0; display:flex; flex-direction:column; }
+.main { padding:24px; overflow-y:auto; max-height:100vh; }
+
+/* Sidebar */
+.brand { padding:16px 20px; border-bottom:1px solid var(--bd); }
+.brand h1 { font-size:16px; font-weight:600; letter-spacing:-.02em; }
+.brand h1 span { color:var(--tx3); font-weight:400; }
+.brand p { font-size:11px; color:var(--tx3); margin-top:2px; }
+.nav { padding:8px 0; }
+.nav-section { padding:8px 20px 4px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--tx3); }
+.nav-item { display:flex; align-items:center; gap:8px; padding:6px 20px; color:var(--tx2); cursor:pointer; transition:background .15s; }
+.nav-item:hover { background:var(--bg3); color:var(--tx); }
+.nav-item.active { background:var(--bg3); color:var(--tx); border-right:2px solid var(--tx); }
+.nav-item svg { width:16px; height:16px; fill:currentColor; opacity:.6; }
+.sidebar-footer { margin-top:auto; padding:16px 20px; border-top:1px solid var(--bd); }
+.sidebar-footer p { font-size:11px; color:var(--tx3); }
+
+/* Main content */
+.page-title { font-size:20px; font-weight:600; letter-spacing:-.02em; margin-bottom:4px; }
+.page-desc { font-size:13px; color:var(--tx2); margin-bottom:24px; }
+
+/* Form */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-group.full { grid-column:1/-1; }
+.form-group label { font-size:11px; font-weight:500; color:var(--tx2); text-transform:uppercase; letter-spacing:.04em; }
+.form-group select, .form-group input { background:var(--bg3); border:1px solid var(--bd); border-radius:6px; padding:8px 12px; font-size:13px; color:var(--tx); font-family:var(--sans); outline:none; transition:border-color .15s; }
+.form-group select:focus, .form-group input:focus { border-color:rgba(255,255,255,.2); }
+.form-group select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23616161'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+.form-hint { font-size:11px; color:var(--tx3); }
+
+/* Button */
+.btn { display:inline-flex; align-items:center; gap:6px; background:var(--bg4); color:var(--tx); border:1px solid var(--bd); border-radius:6px; padding:8px 20px; font-size:13px; font-weight:500; cursor:pointer; transition:background .15s, border-color .15s; font-family:var(--sans); }
+.btn:hover { background:var(--bg3); border-color:rgba(255,255,255,.15); }
+.btn:active { background:var(--bg2); }
+.btn-primary { background:var(--tx); color:var(--bg); border-color:var(--tx); }
+.btn-primary:hover { background:#e0e0e0; border-color:#e0e0e0; }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Result panel */
+.result { margin-top:24px; display:none; }
+.result.visible { display:block; }
+.result-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.result-title { font-size:14px; font-weight:600; }
+.result-meta { display:flex; gap:16px; font-size:11px; color:var(--tx3); font-family:var(--mono); }
+.payload-box { background:var(--bg2); border:1px solid var(--bd); border-radius:8px; overflow:hidden; }
+.payload-box pre { padding:16px; font-family:var(--mono); font-size:11px; line-height:1.6; color:var(--tx2); white-space:pre-wrap; word-break:break-all; max-height:400px; overflow-y:auto; }
+.conn-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:16px; }
+.conn-card { background:var(--bg2); border:1px solid var(--bd); border-radius:8px; padding:12px 16px; }
+.conn-card .label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--tx3); margin-bottom:4px; }
+.conn-card .value { font-family:var(--mono); font-size:13px; color:var(--tx); user-select:all; }
+.conn-card .value.small { font-size:11px; }
+
+/* Toast */
+.toast { position:fixed; bottom:24px; right:24px; background:var(--bg4); border:1px solid var(--bd); border-radius:8px; padding:12px 20px; font-size:13px; display:none; z-index:1000; box-shadow:var(--shadow-pill); }
+.toast.show { display:block; }
+.toast.ok { border-color:rgba(139,196,164,.3); color:var(--ok); }
+.toast.err { border-color:rgba(196,139,139,.3); color:var(--err); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:#3a3a3a; }
+
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+@media (max-width:768px) { .app { grid-template-columns:1fr; } .sidebar { display:none; } .form-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>NMG<span> / .NET Memshell</span></h1>
+      <p>Parameterized generator</p>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Generator</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 16 16"><path d="M8 1l7 3.5v7L8 15 1 11.5v-7L8 1zm0 1.618L2.5 5.309v5.382L8 13.382l5.5-2.691V5.309L8 2.618z"/></svg>
+        Generate
+      </div>
+      <div class="nav-section">Reference</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 16 16"><path d="M3 1.5A1.5 1.5 0 014.5 0h7A1.5 1.5 0 0113 1.5v13a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 013 14.5v-13zM4.5 1a.5.5 0 00-.5.5v13a.5.5 0 00.5.5h7a.5.5 0 00.5-.5v-13a.5.5 0 00-.5-.5h-7z"/></svg>
+        Docs
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <p>v0.1.0 · MIT</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <h2 class="page-title">Generate Memory Shell</h2>
+    <p class="page-desc">Configure parameters and generate a ready-to-deploy .NET memory shell payload.</p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Memory Shell Type</label>
+        <select id="type">
+          <option value="vpp">VPP — VirtualPathProvider</option>
+          <option value="route">Route — RouteBase (MVC)</option>
+          <option value="httplistener">HttpListener — Standalone</option>
+        </select>
+        <span class="form-hint">Target injection point in the ASP.NET pipeline</span>
+      </div>
+      <div class="form-group">
+        <label>Shell Protocol</label>
+        <select id="shell">
+          <option value="godzilla">Godzilla 4.x — C#</option>
+          <option value="behinder">Behinder 4.x — .NET</option>
+        </select>
+        <span class="form-hint">Webshell manager communication protocol</span>
+      </div>
+      <div class="form-group">
+        <label>Connection Password</label>
+        <input type="text" id="pass" placeholder="p@ssw0rd" required>
+        <span class="form-hint">Used by the webshell client to authenticate</span>
+      </div>
+      <div class="form-group">
+        <label>Target Framework</label>
+        <select id="target">
+          <option value="net40">.NET Framework 4.0</option>
+          <option value="net472">.NET Framework 4.7.2</option>
+        </select>
+        <span class="form-hint">Payload compilation target</span>
+      </div>
+      <div class="form-group">
+        <label>Output Format</label>
+        <select id="format">
+          <option value="aspx">ASPX Injector Page</option>
+          <option value="b64">Raw Base64</option>
+        </select>
+        <span class="form-hint">How the payload is delivered</span>
+      </div>
+      <div class="form-group">
+        <label>Randomization Seed</label>
+        <input type="number" id="seed" placeholder="random" min="0">
+        <span class="form-hint">Fixed seed = deterministic output (for reproducibility)</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btnGenerate" onclick="generate()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a.5.5 0 01.5.5v6h6a.5.5 0 010 1h-6v6a.5.5 0 01-1 0v-6h-6a.5.5 0 010-1h6v-6A.5.5 0 018 1z"/></svg>
+      Generate Payload
+    </button>
+
+    <div class="result" id="result">
+      <div class="result-header">
+        <span class="result-title">Payload Generated</span>
+        <div class="result-meta" id="meta"></div>
+      </div>
+      <div class="payload-box">
+        <pre id="payloadOutput"></pre>
+      </div>
+      <div class="conn-grid" id="connInfo"></div>
+      <div style="margin-top:12px;">
+        <button class="btn" onclick="copyPayload()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5A1.5 1.5 0 015.5 0h7A1.5 1.5 0 0114 1.5v9a1.5 1.5 0 01-1.5 1.5H12v1.5A1.5 1.5 0 0110.5 15h-7A1.5 1.5 0 012 13.5v-9A1.5 1.5 0 013.5 3H4V1.5zM5.5 1a.5.5 0 00-.5.5V3h6V1.5a.5.5 0 00-.5-.5h-5zM3.5 4a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h7a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5h-7z"/></svg>
+          Copy Payload
+        </button>
+        <button class="btn" onclick="downloadPayload()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a.5.5 0 01.5.5v8.793l2.854-2.853a.5.5 0 11.707.707l-3.707 3.707a.5.5 0 01-.707 0L3.939 8.147a.5.5 0 11.707-.707L7.5 10.293V1.5A.5.5 0 018 1z"/><path d="M2 13.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
+          Download
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentPayload = '';
+let currentFormat = 'aspx';
+
+async function generate() {
+  const pass = document.getElementById('pass').value.trim();
+  if (!pass) { showToast('Password is required', 'err'); return; }
+
+  const btn = document.getElementById('btnGenerate');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: document.getElementById('type').value,
+        shell: document.getElementById('shell').value,
+        pass: pass,
+        target: document.getElementById('target').value,
+        format: document.getElementById('format').value,
+        seed: document.getElementById('seed').value ? parseInt(document.getElementById('seed').value) : null,
+        path: null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Generation failed', 'err'); return; }
+
+    currentPayload = data.payload;
+    currentFormat = document.getElementById('format').value;
+    document.getElementById('payloadOutput').textContent = currentPayload;
+
+    // Show connection info
+    const conn = data.connection || {};
+    const connEl = document.getElementById('connInfo');
+    connEl.innerHTML = '';
+    const items = [
+      { label: 'Password', value: conn.pass || pass },
+      { label: 'Key', value: conn.key || 'auto-derived' },
+      { label: 'Trigger URL', value: conn.url || 'any existing page', small: true },
+      { label: 'Class', value: (conn.namespaceName || '') + '.' + (conn.className || ''), small: true },
+    ];
+    items.forEach(item => {
+      connEl.innerHTML += `<div class="conn-card"><div class="label">${item.label}</div><div class="value${item.small ? ' small' : ''}">${item.value}</div></div>`;
+    });
+
+    // Meta
+    const type = document.getElementById('type').value;
+    const shell = document.getElementById('shell').value;
+    const target = document.getElementById('target').value;
+    document.getElementById('meta').textContent = `${type} · ${shell} · ${target} · ${new Blob([currentPayload]).size} bytes`;
+
+    document.getElementById('result').classList.add('visible');
+    showToast('Payload generated successfully', 'ok');
+  } catch (e) {
+    showToast('Error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a.5.5 0 01.5.5v6h6a.5.5 0 010 1h-6v6a.5.5 0 01-1 0v-6h-6a.5.5 0 010-1h6v-6A.5.5 0 018 1z"/></svg> Generate Payload';
+  }
+}
+
+function copyPayload() {
+  navigator.clipboard.writeText(currentPayload).then(() => showToast('Copied to clipboard', 'ok'));
+}
+
+function downloadPayload() {
+  const ext = currentFormat === 'b64' ? '.b64' : '.aspx';
+  const blob = new Blob([currentPayload], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nmg_payload' + ext;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
