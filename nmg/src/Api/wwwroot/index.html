@@ -143,7 +143,6 @@ a { color:var(--info); text-decoration:none; }
           <option value="godzilla">Godzilla 4.x — C#</option>
           <option value="behinder">Behinder 4.x — .NET</option>
           <option value="antsword">AntSword — Base64</option>
-          <option value="antsword">AntSword — Base64</option>
         </select>
         <span class="form-hint">Webshell manager communication protocol</span>
       </div>
@@ -287,6 +286,26 @@ function downloadPayload() {
   URL.revokeObjectURL(a.href);
 }
 
+function downloadProbe() {
+  var lines = [
+    '<%@ Page Language="C#" %>',
+    '<%',
+    'var info = new System.Text.StringBuilder();',
+    'info.Append("{clr:" + System.Environment.Version);
+    'info.Append(",appPool:" + System.Environment.GetEnvironmentVariable("APP_POOL_ID"));'
+    'Response.ContentType = "application/json";',
+    'Response.Write(info.ToString());',
+    '%>'
+  ];
+  var blob = new Blob([lines.join(
+)], { type: "text/plain" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "probe.aspx";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("Probe downloaded", "ok");
+}
 function showToast(msg, type) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -294,56 +313,3 @@ function showToast(msg, type) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 function downloadProbe() {
-  const probeContent = `<%@ Page Language="C#" %>
-<%
-var info = new System.Text.StringBuilder();
-info.Append("{");
-info.Append("\\"clr\\":\\"" + System.Environment.Version + "\\"");
-info.Append(",\\"os\\":\\"" + System.Environment.OSVersion + "\\"");
-info.Append(",\\"is64bit\\":" + (System.Environment.Is64BitOperatingSystem ? "true" : "false"));
-try {
-    string trustLevel = "unknown";
-    var cfg = System.Web.Configuration.WebConfigurationManager.OpenWebConfiguration("~");
-    var ts = cfg.GetSection("system.web/trust");
-    if (ts != null) {
-        var prop = ts.GetType().GetProperty("Level");
-        if (prop != null) trustLevel = (string)prop.GetValue(ts);
-    }
-    info.Append(",\\"trustLevel\\":\\"" + trustLevel + "\\"");
-} catch { info.Append(",\\"trustLevel\\":\\"unavailable\\""); }
-try { info.Append(",\\"mvc\\":" + (Exists("System.Web.Mvc") ? "true" : "false")); } catch { info.Append(",\\"mvc\\":false"); }
-try { info.Append(",\\"routing\\":" + (Exists("System.Web.Routing") ? "true" : "false")); } catch { info.Append(",\\"routing\\":false"); }
-try {
-    var vpp = System.Web.Hosting.HostingEnvironment.VirtualPathProvider;
-    info.Append(",\\"vpp\\":\\"" + (vpp == null ? "null" : vpp.GetType().FullName) + "\\"");
-} catch { info.Append(",\\"vpp\\":\\"unknown\\""); }
-info.Append(",\\"appPool\\":\\"" + System.Environment.GetEnvironmentVariable("APP_POOL_ID") + "\\"");
-info.Append("}");
-Response.ContentType = "application/json";
-Response.Write(info.ToString());
-%>
-<script runat="server">
-static bool Exists(string typeName)
-{
-    try
-    {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            try { if (asm.GetType(typeName, false) != null) return true; } catch {}
-        }
-        return false;
-    }
-    catch { return false; }
-}
-</script>`;
-  const blob = new Blob([probeContent], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "probe.aspx";
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast("Probe page downloaded", "ok");
-}
-</script>
-</body>
-</html>
