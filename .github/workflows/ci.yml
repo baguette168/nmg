@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
         run: dotnet test nmg/tests -c Release --no-build --verbosity normal
 
       - name: Publish CLI
-        run: dotnet publish nmg/src -c Release -r win-x64 --self-contained -o publish/ --no-build
+        run: dotnet publish nmg/src -c Release -r win-x64 --self-contained -o publish/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
