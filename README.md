@@ -1,12 +1,46 @@
 ﻿# NMG - .NET Memory-shell Generator
 
-> 参数化 .NET 内存马生成器 | 攻防演练自用 | 模仿 JMG 的 .NET 版本
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+![Tests](https://img.shields.io/badge/tests-55%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+
+> Parameterized .NET memory shell generator | Red team / security testing | JMG equivalent for .NET
+
+## Architecture
+
+```
++-----------------------------------------------------+
+|                    nmg.exe (CLI)                     |
++------------------------+----------------------------+
+|  generate (payload)    |  probe (env detection)     |
++------------------------+----------------------------+
+|                  Protocol Layer                      |
+|  +----------+  +----------+  +----------+           |
+|  | Godzilla |  | Behinder |  | AntSword |           |
+|  | AES-128  |  | AES-128  |  | Base64   |           |
+|  +----------+  +----------+  +----------+           |
++------------------------------------------------------+
+|               Template Layer                         |
+|  +----------+  +----------+  +--------------+       |
+|  |   VPP    |  |  Route   |  | HttpListener |       |
+|  | IIS hook |  |MVC Route |  |  Standalone  |       |
+|  +----------+  +----------+  +--------------+       |
++------------------------------------------------------+
+|             Compilation Engine                       |
+|        Roslyn -> DLL (net40/net472)                 |
+|    deterministic / XOR obfuscated / randomized      |
++------------------------------------------------------+
+|                Output Layer                          |
+|    aspx injector / base64 / dll                     |
++------------------------------------------------------+
+```
 
 ## What is NMG?
 
-NMG generates parameterized .NET memory shell payloads that inject into IIS/ASP.NET applications without leaving files on disk. After injection, you connect with existing webshell managers (Godzilla / Behinder / AntSword) — NMG just makes the server side work.
+NMG generates parameterized .NET memory shell payloads that inject into IIS/ASP.NET applications without leaving files on disk. After injection, you connect with existing webshell managers (Godzilla / Behinder / AntSword) - NMG just makes the server side work.
 
-**Think of it as: `input parameters → compiled payload → inject → connect with client`**
+**Think of it as: `input parameters -> compiled payload -> inject -> connect with client`**
 
 ## Features
 
@@ -162,3 +196,4 @@ nmg/
 ## License
 
 MIT
+
