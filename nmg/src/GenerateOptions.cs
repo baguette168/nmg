@@ -65,8 +65,9 @@ public static class GenerateCommand
         string source = RenderTemplate(opts, ns, cls, key, virtualPath, triggerName);
         Console.WriteLine("[+] template rendered");
 
+        var asmName = cls.ToLower();
         var compiler = new Compiler.RoslynCompiler();
-        var (success, dllBytes, diags) = compiler.Compile(source, opts.TargetFramework);
+        var (success, dllBytes, diags) = compiler.Compile(source, opts.TargetFramework, asmName);
         if (!success)
         {
             Console.Error.WriteLine("[!] Compilation failed:");

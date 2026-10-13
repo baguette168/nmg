@@ -8,7 +8,7 @@ public class RoslynCompiler
 {
     private static Dictionary<string, string>? _refAssemblyCache;
 
-    public (bool Success, byte[] Dll, string[] Diagnostics) Compile(string source, string targetFramework)
+    public (bool Success, byte[] Dll, string[] Diagnostics) Compile(string source, string targetFramework, string assemblyName = "NmgPayload")
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source,
             new CSharpParseOptions(LanguageVersion.CSharp2));
@@ -18,7 +18,7 @@ public class RoslynCompiler
             return (false, Array.Empty<byte>(), new[] { "No reference assemblies found for " + targetFramework });
 
         var compilation = CSharpCompilation.Create(
-            "NmgPayload",
+            assemblyName,
             new[] { syntaxTree },
             refs,
             new CSharpCompilationOptions(
