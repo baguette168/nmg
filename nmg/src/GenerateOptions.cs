@@ -95,6 +95,8 @@ public static class GenerateCommand
             else File.WriteAllText(opts.OutputFile, output);
         }
 
+        string sha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(dllBytes)).ToLower();
+        Console.WriteLine($"[+] sha256:   {sha256}");
         if (opts.OutputFile != null)
             Console.WriteLine($"[+] payload: {Path.GetFullPath(opts.OutputFile)}  (type={opts.ShellType}, shell={opts.ShellProtocol}, target={opts.TargetFramework})");
         Console.WriteLine("[+] upload and access once to trigger injection, then delete the file");
