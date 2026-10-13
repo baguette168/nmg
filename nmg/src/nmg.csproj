@@ -14,5 +14,9 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net40" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="All" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Api\**" />
+    <None Remove="Api\**" />
+  </ItemGroup>
 </Project>
 
