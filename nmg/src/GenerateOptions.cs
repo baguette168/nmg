@@ -1,4 +1,4 @@
-﻿namespace NMG;
+namespace NMG;
 
 public class GenerateOptions
 {
@@ -40,6 +40,11 @@ public static class GenerateCommand
         var validTypes = new[] { "vpp", "route", "httplistener" };
         if (!validTypes.Contains(opts.ShellType)) { Console.Error.WriteLine($"Error: --type '{opts.ShellType}' not supported. Valid: {string.Join(", ", validTypes)}"); return 1; }
         var validProtocols = new[] { "godzilla", "behinder", "antsword" };
+        if (opts.ShellType == "httplistener" && opts.ShellProtocol != "godzilla")
+        {
+            Console.Error.WriteLine("Error: httplistener currently only supports godzilla protocol.");
+            return 1;
+        }
         if (!validProtocols.Contains(opts.ShellProtocol)) { Console.Error.WriteLine($"Error: --shell '{opts.ShellProtocol}' not supported. Valid: {string.Join(", ", validProtocols)}"); return 1; }
 
         string key = opts.Key ?? DeriveKey(opts.Password, opts.ShellProtocol);
