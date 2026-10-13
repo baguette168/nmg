@@ -1,0 +1,14 @@
+﻿* text=auto
+*.cs text
+*.md text
+*.yml text
+*.json text
+*.csproj text
+*.sln text
+*.aspx text
+*.html text
+*.css text
+*.js text
+*.exe binary
+*.dll binary
+*.jar binary
