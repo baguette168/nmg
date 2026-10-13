@@ -74,6 +74,9 @@ public static class GenerateCommand
             return 1;
         }
         Console.WriteLine($"[+] compiled:  {dllBytes.Length} bytes ({opts.TargetFramework})");
+        Console.WriteLine($"[+] assembly:  NmgPayload.dll ({opts.ShellProtocol} protocol)");
+        if (opts.Seed.HasValue) Console.WriteLine($"[+] seed:      {opts.Seed.Value} (deterministic)");
+        Console.WriteLine($"[+] security:  trigger randomized, strings obfuscated");
 
         string? output = null;
         switch (opts.OutputFormat.ToLowerInvariant())
