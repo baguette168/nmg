@@ -171,7 +171,7 @@ public static class GenerateCommand
             "vpp" => Templates.VppTemplate.Source,
             "route" => Templates.RouteTemplate.Source,
             "httplistener" => Templates.HttpListenerTemplate.Source,
-            _ => throw new NotSupportedException(opts.ShellType)
+                        _ => throw new NotSupportedException(opts.ShellType)
         };
 
         return template

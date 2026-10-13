@@ -1,0 +1,1 @@
+﻿- MvcFilterTemplate (FR-2.4): requires System.Web.Mvc.dll from NuGet (Microsoft.AspNet.Mvc), needs reference assembly integration. Template already written at src/Templates/MvcFilterTemplate.cs but not compiled.
