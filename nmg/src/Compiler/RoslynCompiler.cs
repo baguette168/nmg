@@ -18,14 +18,15 @@ public class RoslynCompiler
             return (false, Array.Empty<byte>(), new[] { "No reference assemblies found for " + targetFramework });
 
         var compilation = CSharpCompilation.Create(
-            "Nmg_" + Guid.NewGuid().ToString("N")[..8],
+            "NmgPayload",
             new[] { syntaxTree },
             refs,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
                 platform: Platform.AnyCpu,
-                allowUnsafe: false));
+                allowUnsafe: false,
+                deterministic: true));
 
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms);
