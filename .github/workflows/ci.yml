@@ -1,0 +1,56 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore nmg/nmg.sln
+
+      - name: Build
+        run: dotnet build nmg/nmg.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test nmg/tests -c Release --no-build --verbosity normal
+
+      - name: Publish CLI
+        run: dotnet publish nmg/src -c Release -r win-x64 --self-contained -o publish/ --no-build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nmg-win-x64
+          path: publish/
+
+  release:
+    needs: build-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish
+        run: dotnet publish nmg/src -c Release -r win-x64 --self-contained -o release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/nmg.exe
+          generate_release_notes: true
