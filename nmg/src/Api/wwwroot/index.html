@@ -89,6 +89,13 @@ a { color:var(--info); text-decoration:none; }
 .toast.ok { border-color:rgba(139,196,164,.3); color:var(--ok); }
 .toast.err { border-color:rgba(196,139,139,.3); color:var(--err); }
 
+/* Syntax highlighting */
+.kw { color: #c678dd; }
+.str { color: #98c379; }
+.cmt { color: #5c6370; font-style: italic; }
+.fn { color: #61afef; }
+.num { color: #d19a66; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width:8px; height:8px; }
 ::-webkit-scrollbar-track { background:var(--bg); }
@@ -240,7 +247,7 @@ async function generate() {
 
     currentPayload = data.payload;
     currentFormat = document.getElementById('format').value;
-    document.getElementById('payloadOutput').textContent = currentPayload;
+    document.getElementById('payloadOutput').innerHTML = highlightCode(currentPayload);
 
     // Show connection info
     const conn = data.connection || {};
@@ -305,6 +312,13 @@ function downloadProbe() {
   a.click();
   URL.revokeObjectURL(a.href);
   showToast("Probe downloaded", "ok");
+}
+function highlightCode(text) {
+  var e = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  e = e.replace(/\b(try|catch|if|else|return|string|byte|void|new|var|true|false|null|public|private|static|override|internal)\b/g,'<span class="kw">$1</span>');
+  e = e.replace(/"([^"]*?)"/g,'<span class="str">"$1"</span>');
+  e = e.replace(/\b(Convert|Assembly|Response|Request|Write|Load|FromBase64String|ToBase64String)\b/g,'<span class="fn">$1</span>');
+  return e;
 }
 function showToast(msg, type) {
   const el = document.getElementById('toast');
