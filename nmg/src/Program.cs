@@ -14,6 +14,8 @@ public static class Program
         {
             case "generate":
                 return GenerateCommand.Run(args.Skip(1).ToArray());
+            case "list":
+                return ListCommand.Run(args.Skip(1).ToArray());
             case "probe":
                 return ProbeCommand.Run(args.Skip(1).ToArray());
             case "version":
@@ -38,6 +40,8 @@ public static class Program
 
             Usage:
               nmg generate [options]    Generate memory shell payload
+              nmg list                  Show compatibility matrix
+              nmg probe                 Generate environment probe page
               nmg version               Show version
               nmg help                  Show this help
 
