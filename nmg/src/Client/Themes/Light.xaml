@@ -1,0 +1,27 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Brush.WindowBg" Color="#F5F5F5"/>
+    <SolidColorBrush x:Key="Brush.TitleBarBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.PanelBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.InputBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.InputBorder" Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="Brush.InputBorderFocus" Color="#333333"/>
+    <SolidColorBrush x:Key="Brush.Text" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Brush.TextSecondary" Color="#555555"/>
+    <SolidColorBrush x:Key="Brush.TextHint" Color="#888888"/>
+    <SolidColorBrush x:Key="Brush.TextOutput" Color="#333333"/>
+    <SolidColorBrush x:Key="Brush.BtnPrimaryBg" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Brush.BtnPrimaryFg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.BtnSecondaryBg" Color="#E8E8E8"/>
+    <SolidColorBrush x:Key="Brush.BtnSecondaryFg" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Brush.StatusOk" Color="#2D8A5A"/>
+    <SolidColorBrush x:Key="Brush.StatusErr" Color="#C0392B"/>
+    <SolidColorBrush x:Key="Brush.StatusInfo" Color="#555555"/>
+    <SolidColorBrush x:Key="Brush.Arrow" Color="#666666"/>
+    <SolidColorBrush x:Key="Brush.ItemHover" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="Brush.ItemSelected" Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="Brush.PopupBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.PopupBorder" Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="Brush.FocusBorder" Color="#333333"/>
+    <SolidColorBrush x:Key="Brush.HoverBorder" Color="#AAAAAA"/>
+</ResourceDictionary>
