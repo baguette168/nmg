@@ -62,6 +62,7 @@
         </ControlTemplate>
         <!-- ComboBox -->
         <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="42"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
@@ -94,6 +95,7 @@
         </Style>
         <!-- TextBox (for password/seed only) -->
         <Style x:Key="DarkTB" TargetType="TextBox">
+            <Setter Property="Height" Value="42"/>
             <Setter Property="Background" Value="{DynamicResource Brush.InputBg}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource Brush.Text}"/>
@@ -146,6 +148,7 @@
         </Style>
         <!-- Secondary Button -->
         <Style x:Key="B2" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
             <Setter Property="Background" Value="{DynamicResource Brush.BtnSecondaryBg}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.BtnSecondaryFg}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
