@@ -51,6 +51,11 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E0E0E0"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <!-- Secondary button -->
         <Style x:Key="B2" TargetType="Button">
@@ -61,7 +66,34 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-    </Window.Resources>
+            <!-- ComboBoxItem dark theme -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#1C1C1C"/>
+            <Setter Property="Foreground" Value="#FAFAFA"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#2A2A2A"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#333333"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- ToolTip dark theme -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#1C1C1C"/>
+            <Setter Property="Foreground" Value="#FAFAFA"/>
+            <Setter Property="BorderBrush" Value="#2A2A2A"/>
+        </Style>
+        <!-- ContextMenu dark theme -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="#1C1C1C"/>
+            <Setter Property="Foreground" Value="#FAFAFA"/>
+            <Setter Property="BorderBrush" Value="#2A2A2A"/>
+        </Style>
+</Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
