@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace NMG.Client;
@@ -13,18 +15,48 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ApplyLanguage();
     }
 
-    private void CmbType_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private void ApplyLanguage()
     {
-        if (CmbShell == null) return;
+        Title = L.Get("app_title");
+        TxtSub.Text = " — " + (L.IsChinese ? ".NET Memory-shell Generator" : ".NET 内存马生成器");
+        BtnLang.Content = L.Get("lang_btn");
+        LblType.Text = L.Get("type_label");
+        HintType.Text = L.Get("type_hint");
+        LblShell.Text = L.Get("shell_label");
+        HintShell.Text = L.Get("shell_hint");
+        LblPass.Text = L.Get("pass_label");
+        HintPass.Text = L.Get("pass_hint");
+        LblTarget.Text = L.Get("target_label");
+        HintTarget.Text = L.Get("target_hint");
+        LblFormat.Text = L.Get("format_label");
+        HintFormat.Text = L.Get("format_hint");
+        LblSeed.Text = L.Get("seed_label");
+        HintSeed.Text = L.Get("seed_hint");
+        BtnGenerate.Content = L.Get("generate");
+        BtnCopy.Content = L.Get("copy");
+        BtnSave.Content = L.Get("save");
+        TxtStatus.Text = L.Get("status_ready");
+        TxtStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
+    }
+
+    private void BtnLang_Click(object sender, RoutedEventArgs e)
+    {
+        L.Toggle();
+        ApplyLanguage();
+    }
+
+    private void CmbType_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbShell == null || CmbType == null) return;
         var type = GetTag(CmbType);
         var shell = GetTag(CmbShell);
         if (type == "httplistener" && shell != "godzilla")
         {
-            CmbShell.SelectedIndex = 0; // Reset to Godzilla
-            MessageBox.Show("HttpListener currently only supports Godzilla protocol.", "NMG",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            CmbShell.SelectedIndex = 0;
+            MessageBox.Show(L.Get("http_listener_warn"), "NMG", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -33,16 +65,12 @@ public partial class MainWindow : Window
         var pass = TxtPass.Text.Trim();
         if (string.IsNullOrEmpty(pass))
         {
-            TxtStatus.Text = "Error: password is required";
-            TxtStatus.Foreground = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#C48B8B"));
+            SetStatus(L.Get("need_pass"), "#C48B8B");
             return;
         }
 
         BtnGenerate.IsEnabled = false;
-        TxtStatus.Text = "Generating...";
-        TxtStatus.Foreground = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#9E9E9E"));
+        SetStatus(L.Get("generating"), "#9E9E9E");
 
         try
         {
@@ -55,16 +83,16 @@ public partial class MainWindow : Window
             var seedText = TxtSeed.Text.Trim();
             int? seed = int.TryParse(seedText, out var s) ? s : null;
 
-            // Build CLI args
-            var args = $"generate --type {type} --shell {shell} --pass \"{pass}\" --target {target} --format {format}";
+            var nmgDll = FindNmgDll();
+            var tempFile = Path.Combine(Path.GetTempPath(), $"nmg_{Guid.NewGuid():N}.{format}");
+
+            var args = $"\"{nmgDll}\" generate --type {type} --shell {shell} --pass \"{pass}\" --target {target} --format {format} -o \"{tempFile}\"";
             if (seed.HasValue) args += $" --seed {seed.Value}";
 
-            // Run nmg CLI
-            var nmgDll = FindNmgDll();
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"\"{nmgDll}\" {args}",
+                Arguments = args,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -72,7 +100,7 @@ public partial class MainWindow : Window
             };
 
             var proc = System.Diagnostics.Process.Start(psi);
-            if (proc == null) throw new Exception("Failed to start nmg process");
+            if (proc == null) throw new Exception("Failed to start nmg");
 
             var stdout = await proc.StandardOutput.ReadToEndAsync();
             var stderr = await proc.StandardError.ReadToEndAsync();
@@ -80,55 +108,25 @@ public partial class MainWindow : Window
 
             if (proc.ExitCode != 0)
             {
-                TxtStatus.Text = $"Error: {stderr.Trim()}";
-                TxtStatus.Foreground = new System.Windows.Media.SolidColorBrush(
-                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#C48B8B"));
+                SetStatus(L.Get("err_prefix") + stderr.Trim(), "#C48B8B");
                 return;
             }
 
-            // Parse payload from output
-            if (format == "b64")
+            if (File.Exists(tempFile))
             {
-                var lines = stdout.Split('\n');
-                foreach (var line in lines)
-                {
-                    if (line.Trim().Length > 100 && !line.Trim().StartsWith("[+]"))
-                    {
-                        _lastPayload = line.Trim();
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // For aspx, we need to run again with -o to a temp file
-                var tempFile = Path.Combine(Path.GetTempPath(), $"nmg_{Guid.NewGuid():N}.aspx");
-                var args2 = args.Replace($"--format {format}", $"--format aspx -o \"{tempFile}\"");
-                psi.Arguments = $"\"{nmgDll}\" {args2}";
-                var proc2 = System.Diagnostics.Process.Start(psi);
-                await proc2.StandardOutput.ReadToEndAsync();
-                await proc2.StandardError.ReadToEndAsync();
-                await proc2.WaitForExitAsync();
-                if (File.Exists(tempFile))
-                {
-                    _lastPayload = File.ReadAllText(tempFile);
-                    File.Delete(tempFile);
-                }
+                _lastPayload = File.ReadAllText(tempFile);
+                File.Delete(tempFile);
             }
 
             TxtOutput.Text = _lastPayload;
             var size = System.Text.Encoding.UTF8.GetByteCount(_lastPayload);
             TxtMeta.Text = $"{type} · {shell} · {target} · {size:N0} bytes";
 
-            TxtStatus.Text = "Payload generated successfully";
-            TxtStatus.Foreground = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#8BC4A4"));
+            SetStatus(L.Get("success"), "#8BC4A4");
         }
         catch (Exception ex)
         {
-            TxtStatus.Text = $"Error: {ex.Message}";
-            TxtStatus.Foreground = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#C48B8B"));
+            SetStatus(L.Get("err_prefix") + ex.Message, "#C48B8B");
         }
         finally
         {
@@ -140,30 +138,30 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrEmpty(_lastPayload)) return;
         Clipboard.SetText(_lastPayload);
-        TxtStatus.Text = "Copied to clipboard";
+        SetStatus(L.Get("copied"), "#8BC4A4");
     }
 
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(_lastPayload)) return;
         var ext = _lastFormat == "b64" ? ".b64" : ".aspx";
-        var dialog = new SaveFileDialog
-        {
-            Filter = $"Payload files|*{ext}|All files|*.*",
-            FileName = $"nmg_payload{ext}"
-        };
+        var dialog = new SaveFileDialog { Filter = $"Payload|*{ext}|All|*.*", FileName = $"nmg_payload{ext}" };
         if (dialog.ShowDialog() == true)
         {
             File.WriteAllText(dialog.FileName, _lastPayload);
-            TxtStatus.Text = $"Saved to {dialog.FileName}";
+            SetStatus(L.Get("saved") + dialog.FileName, "#8BC4A4");
         }
     }
 
-    private string GetTag(System.Windows.Controls.ComboBox cmb)
+    private void SetStatus(string text, string hexColor)
     {
-        if (cmb.SelectedItem is System.Windows.Controls.ComboBoxItem item && item.Tag != null)
-            return item.Tag.ToString();
-        return "";
+        TxtStatus.Text = text;
+        TxtStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hexColor));
+    }
+
+    private string GetTag(ComboBox cmb)
+    {
+        return cmb.SelectedItem is ComboBoxItem item && item.Tag != null ? item.Tag.ToString() : "";
     }
 
     private string FindNmgDll()
@@ -175,6 +173,9 @@ public partial class MainWindow : Window
             if (File.Exists(candidate)) return candidate;
             dir = Path.GetDirectoryName(dir);
         }
-        throw new FileNotFoundException("nmg.dll not found");
+        // Fallback: look for nmg.exe in same directory
+        var exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nmg.exe");
+        if (File.Exists(exe)) return exe;
+        throw new FileNotFoundException("nmg.dll not found. Make sure the nmg project is built.");
     }
 }
