@@ -11,51 +11,18 @@ public partial class MainWindow : Window
 {
     private string _lastPayload = "";
     private string _lastFormat = "aspx";
-    private bool _isDark = true;
-
+    
     public MainWindow()
     {
         InitializeComponent();
         ApplyLanguage();
-        SetTheme(true);
     }
 
-    private void SetTheme(bool dark)
-    {
-        _isDark = dark;
-        var res = Application.Current.Resources;
-        Action<string, string> set = (key, hex) => {
-            res[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-        };
-        if (dark) {
-            set("Brush.WindowBg", "#0E0E0E"); set("Brush.TitleBarBg", "#141414");
-            set("Brush.PanelBg", "#141414"); set("Brush.InputBg", "#1C1C1C");
-            set("Brush.InputBorder", "#2A2A2A"); set("Brush.FocusBorder", "#FFFFFF");
-            set("Brush.Text", "#FAFAFA"); set("Brush.TextSecondary", "#A0A0A0");
-            set("Brush.TextHint", "#808080"); set("Brush.TextOutput", "#D0D0D0");
-            set("Brush.BtnPrimaryBg", "#2D2D2D"); set("Brush.BtnPrimaryFg", "#FFFFFF");
-            set("Brush.BtnSecondaryBg", "#333333"); set("Brush.BtnSecondaryFg", "#FFFFFF");
-            set("Brush.Arrow", "#A0A0A0"); set("Brush.ItemHover", "#333333");
-            set("Brush.ItemSelected", "#3A3A3A"); set("Brush.PopupBg", "#1C1C1C");
-            set("Brush.PopupBorder", "#2A2A2A"); set("Brush.HoverBorder", "#4A4A4A");
-        } else {
-            set("Brush.WindowBg", "#F5F5F5"); set("Brush.TitleBarBg", "#FFFFFF");
-            set("Brush.PanelBg", "#FFFFFF"); set("Brush.InputBg", "#FFFFFF");
-            set("Brush.InputBorder", "#D0D0D0"); set("Brush.FocusBorder", "#333333");
-            set("Brush.Text", "#1A1A1A"); set("Brush.TextSecondary", "#555555");
-            set("Brush.TextHint", "#888888"); set("Brush.TextOutput", "#333333");
-            set("Brush.BtnPrimaryBg", "#1A1A1A"); set("Brush.BtnPrimaryFg", "#FFFFFF");
-            set("Brush.BtnSecondaryBg", "#E8E8E8"); set("Brush.BtnSecondaryFg", "#1A1A1A");
-            set("Brush.Arrow", "#666666"); set("Brush.ItemHover", "#E0E0E0");
-            set("Brush.ItemSelected", "#D0D0D0"); set("Brush.PopupBg", "#FFFFFF");
-            set("Brush.PopupBorder", "#D0D0D0"); set("Brush.HoverBorder", "#AAAAAA");
-        }
-    }
+    
 
     private void ApplyLanguage()
     {
         Title = L.Get("app_title");
-        TxtSub.Text = " — " + (L.IsChinese ? ".NET Memory-shell Generator" : ".NET 内存马生成器");
         BtnLang.Content = L.Get("lang_btn");
         LblType.Text = L.Get("type_label");
         HintType.Text = L.Get("type_hint");
@@ -73,7 +40,7 @@ public partial class MainWindow : Window
         BtnCopy.Content = L.Get("copy");
         BtnSave.Content = L.Get("save");
         TxtStatus.Text = L.Get("status_ready");
-        TxtStatus.Foreground = FindResource("Brush.StatusInfo") as Brush ?? Brushes.Gray;
+        TxtStatus.Foreground = FindResource("TextFillColorSecondaryBrush") as Brush ?? Brushes.Gray;
     }
 
     private void BtnLang_Click(object sender, RoutedEventArgs e)
@@ -99,12 +66,12 @@ public partial class MainWindow : Window
         var pass = TxtPass.Text.Trim();
         if (string.IsNullOrEmpty(pass))
         {
-            SetStatus(L.Get("need_pass"), "Brush.StatusErr");
+            SetStatus(L.Get("need_pass"), "SystemFillColorCriticalBrush");
             return;
         }
 
         BtnGenerate.IsEnabled = false;
-        SetStatus(L.Get("generating"), "Brush.StatusInfo");
+        SetStatus(L.Get("generating"), "TextFillColorSecondaryBrush");
 
         try
         {
@@ -142,7 +109,7 @@ public partial class MainWindow : Window
 
             if (proc.ExitCode != 0)
             {
-                SetStatus(L.Get("err_prefix") + stderr.Trim(), "Brush.StatusErr");
+                SetStatus(L.Get("err_prefix") + stderr.Trim(), "SystemFillColorCriticalBrush");
                 return;
             }
 
@@ -156,11 +123,11 @@ public partial class MainWindow : Window
             var size = System.Text.Encoding.UTF8.GetByteCount(_lastPayload);
             TxtMeta.Text = $"{type} · {shell} · {target} · {size:N0} bytes";
 
-            SetStatus(L.Get("success"), "Brush.StatusOk");
+            SetStatus(L.Get("success"), "SystemFillColorSuccessBrush");
         }
         catch (Exception ex)
         {
-            SetStatus(L.Get("err_prefix") + ex.Message, "Brush.StatusErr");
+            SetStatus(L.Get("err_prefix") + ex.Message, "SystemFillColorCriticalBrush");
         }
         finally
         {
@@ -172,7 +139,7 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrEmpty(_lastPayload)) return;
         Clipboard.SetText(_lastPayload);
-        SetStatus(L.Get("copied"), "Brush.StatusOk");
+        SetStatus(L.Get("copied"), "SystemFillColorSuccessBrush");
     }
 
     private void BtnSave_Click(object sender, RoutedEventArgs e)
@@ -183,14 +150,14 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             File.WriteAllText(dialog.FileName, _lastPayload);
-            SetStatus(L.Get("saved") + dialog.FileName, "Brush.StatusOk");
+            SetStatus(L.Get("saved") + dialog.FileName, "SystemFillColorSuccessBrush");
         }
     }
 
     private void SetStatus(string text, string brushKey)
     {
         TxtStatus.Text = text;
-        TxtStatus.Foreground = FindResource(brushKey) as Brush ?? Brushes.Gray;
+        TxtStatus.Foreground = FindResource(brushKey) as Brush ?? new SolidColorBrush(Color.FromRgb(0xA0,0xA0,0xA0));
     }
 
     private string GetTag(ComboBox cmb)
