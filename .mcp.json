@@ -1,0 +1,9 @@
+﻿{
+  "mcpServers": {
+    "nmg-client-debug": {
+      "command": "node",
+      "args": ["C:\\Users\\johnroan\\Desktop\\个人研究\\.NET内存马生成器\\debug-mcp\\dist\\index.js"],
+      "env": {}
+    }
+  }
+}
