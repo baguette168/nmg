@@ -39,7 +39,7 @@ public static class GenerateCommand
             }
         }
         if (string.IsNullOrEmpty(opts.Password)) { Console.Error.WriteLine("Error: --pass is required"); return 1; }
-        var validTypes = new[] { "vpp", "route", "httplistener" };
+        var validTypes = new[] { "vpp", "route", "httplistener", "eventsub" };
         if (!validTypes.Contains(opts.ShellType)) { Console.Error.WriteLine($"Error: --type '{opts.ShellType}' not supported. Valid: {string.Join(", ", validTypes)}"); return 1; }
         var validProtocols = new[] { "godzilla", "behinder", "antsword" };
         if (opts.ShellType == "httplistener" && opts.ShellProtocol != "godzilla")
@@ -177,6 +177,7 @@ public static class GenerateCommand
             "vpp" => Templates.VppTemplate.Source,
             "route" => Templates.RouteTemplate.Source,
             "httplistener" => Templates.HttpListenerTemplate.Source,
+            "eventsub" => Templates.EventSubscriptionTemplate.Source,
                         _ => throw new NotSupportedException(opts.ShellType)
         };
 

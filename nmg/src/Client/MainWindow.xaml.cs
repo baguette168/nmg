@@ -1,94 +1,56 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.Win32;
+using Microsoft.Web.WebView2.Core;
 
 namespace NMG.Client;
 
 public partial class MainWindow : Window
 {
-    private string _lastPayload = "";
-    private string _lastFormat = "aspx";
-    
     public MainWindow()
     {
         InitializeComponent();
-        ApplyLanguage();
+        WebView.CoreWebView2InitializationCompleted += WebView_Initialized;
+        InitializeWebView();
     }
 
-    
-
-    private void ApplyLanguage()
+    private async void InitializeWebView()
     {
-        Title = L.Get("app_title");
-        BtnLang.Content = L.Get("lang_btn");
-        LblType.Text = L.Get("type_label");
-        HintType.Text = L.Get("type_hint");
-        LblShell.Text = L.Get("shell_label");
-        HintShell.Text = L.Get("shell_hint");
-        LblPass.Text = L.Get("pass_label");
-        HintPass.Text = L.Get("pass_hint");
-        LblTarget.Text = L.Get("target_label");
-        HintTarget.Text = L.Get("target_hint");
-        LblFormat.Text = L.Get("format_label");
-        HintFormat.Text = L.Get("format_hint");
-        LblSeed.Text = L.Get("seed_label");
-        HintSeed.Text = L.Get("seed_hint");
-        BtnGenerate.Content = L.Get("generate");
-        BtnCopy.Content = L.Get("copy");
-        BtnSave.Content = L.Get("save");
-        TxtStatus.Text = L.Get("status_ready");
-        TxtStatus.Foreground = FindResource("TextFillColorSecondaryBrush") as Brush ?? Brushes.Gray;
+        var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(Path.GetTempPath(), "NMG_WebView2"));
+        await WebView.EnsureCoreWebView2Async(env);
+        WebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+        WebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+        WebView.CoreWebView2.WebMessageReceived += OnWebMessage;
+        
+        var htmlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "www", "index.html");
+        WebView.CoreWebView2.Navigate(new Uri(htmlPath).AbsoluteUri);
     }
 
-    private void BtnLang_Click(object sender, RoutedEventArgs e)
+    private void WebView_Initialized(object? sender, CoreWebView2InitializationCompletedEventArgs e)
     {
-        L.Toggle();
-        ApplyLanguage();
+        // Add the bridge object for JS interop
+        WebView.CoreWebView2.AddHostObjectToScript("bridge", new Bridge());
     }
 
-    private void CmbType_Changed(object sender, SelectionChangedEventArgs e)
+    private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
-        if (CmbShell == null || CmbType == null) return;
-        var type = GetTag(CmbType);
-        var shell = GetTag(CmbShell);
-        if (type == "httplistener" && shell != "godzilla")
-        {
-            CmbShell.SelectedIndex = 0;
-            MessageBox.Show(L.Get("http_listener_warn"), "NMG", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
+        // Handle messages from JS if needed
     }
+}
 
-    private async void BtnGenerate_Click(object sender, RoutedEventArgs e)
+/// <summary>
+/// Bridge class exposed to JavaScript for calling nmg.exe
+/// </summary>
+[System.Runtime.InteropServices.ComVisible(true)]
+public class Bridge
+{
+    public BridgeResult Generate(string type, string shell, string pass, string target, string format, int seed)
     {
-        var pass = TxtPass.Text.Trim();
-        if (string.IsNullOrEmpty(pass))
-        {
-            SetStatus(L.Get("need_pass"), "SystemFillColorCriticalBrush");
-            return;
-        }
-
-        BtnGenerate.IsEnabled = false;
-        SetStatus(L.Get("generating"), "TextFillColorSecondaryBrush");
-
         try
         {
-            var type = GetTag(CmbType);
-            var shell = GetTag(CmbShell);
-            var target = GetTag(CmbTarget);
-            var format = GetTag(CmbFormat);
-            _lastFormat = format;
-
-            var seedText = TxtSeed.Text.Trim();
-            int? seed = int.TryParse(seedText, out var s) ? s : null;
-
-            var nmgDll = FindNmgDll();
             var tempFile = Path.Combine(Path.GetTempPath(), $"nmg_{Guid.NewGuid():N}.{format}");
-
-            var args = $"\"{nmgDll}\" generate --type {type} --shell {shell} --pass \"{pass}\" --target {target} --format {format} -o \"{tempFile}\"";
-            if (seed.HasValue) args += $" --seed {seed.Value}";
+            var args = $"\"{FindNmgDll()}\" generate --type {type} --shell {shell} --pass \"{pass}\" --target {target} --format {format} -o \"{tempFile}\"";
+            if (seed > 0) args += $" --seed {seed}";
 
             var psi = new System.Diagnostics.ProcessStartInfo
             {
@@ -101,68 +63,53 @@ public partial class MainWindow : Window
             };
 
             var proc = System.Diagnostics.Process.Start(psi);
-            if (proc == null) throw new Exception("Failed to start nmg");
+            if (proc == null) return new BridgeResult { Error = "Failed to start nmg" };
 
-            var stdout = await proc.StandardOutput.ReadToEndAsync();
-            var stderr = await proc.StandardError.ReadToEndAsync();
-            await proc.WaitForExitAsync();
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
 
             if (proc.ExitCode != 0)
-            {
-                SetStatus(L.Get("err_prefix") + stderr.Trim(), "SystemFillColorCriticalBrush");
-                return;
-            }
+                return new BridgeResult { Error = stderr.Trim() };
 
+            var payload = "";
             if (File.Exists(tempFile))
             {
-                _lastPayload = File.ReadAllText(tempFile);
+                payload = File.ReadAllText(tempFile);
                 File.Delete(tempFile);
             }
 
-            TxtOutput.Text = _lastPayload;
-            var size = System.Text.Encoding.UTF8.GetByteCount(_lastPayload);
-            TxtMeta.Text = $"{type} · {shell} · {target} · {size:N0} bytes";
+            // Extract connection info from stdout
+            var key = Extract(stdout, @"key:\s+(\S+)");
+            var passOut = pass;
 
-            SetStatus(L.Get("success"), "SystemFillColorSuccessBrush");
+            return new BridgeResult
+            {
+                Payload = payload,
+                Connection = new ConnectionInfo { Pass = passOut, Key = key }
+            };
         }
         catch (Exception ex)
         {
-            SetStatus(L.Get("err_prefix") + ex.Message, "SystemFillColorCriticalBrush");
+            return new BridgeResult { Error = ex.Message };
         }
-        finally
+    }
+
+    public void SaveFile(string content, string extension)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            BtnGenerate.IsEnabled = true;
-        }
-    }
-
-    private void BtnCopy_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrEmpty(_lastPayload)) return;
-        Clipboard.SetText(_lastPayload);
-        SetStatus(L.Get("copied"), "SystemFillColorSuccessBrush");
-    }
-
-    private void BtnSave_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrEmpty(_lastPayload)) return;
-        var ext = _lastFormat == "b64" ? ".b64" : ".aspx";
-        var dialog = new SaveFileDialog { Filter = $"Payload|*{ext}|All|*.*", FileName = $"nmg_payload{ext}" };
+            Filter = $"Payload|*{extension}|All|*.*",
+            FileName = $"nmg_payload{extension}"
+        };
         if (dialog.ShowDialog() == true)
-        {
-            File.WriteAllText(dialog.FileName, _lastPayload);
-            SetStatus(L.Get("saved") + dialog.FileName, "SystemFillColorSuccessBrush");
-        }
+            File.WriteAllText(dialog.FileName, content);
     }
 
-    private void SetStatus(string text, string brushKey)
+    private string Extract(string text, string pattern)
     {
-        TxtStatus.Text = text;
-        TxtStatus.Foreground = FindResource(brushKey) as Brush ?? new SolidColorBrush(Color.FromRgb(0xA0,0xA0,0xA0));
-    }
-
-    private string GetTag(ComboBox cmb)
-    {
-        return cmb.SelectedItem is ComboBoxItem item && item.Tag != null ? item.Tag.ToString() : "";
+        var match = System.Text.RegularExpressions.Regex.Match(text, pattern);
+        return match.Success ? match.Groups[1].Value : "";
     }
 
     private string FindNmgDll()
@@ -178,4 +125,17 @@ public partial class MainWindow : Window
         if (File.Exists(exe)) return exe;
         throw new FileNotFoundException("nmg.dll not found");
     }
+}
+
+public class BridgeResult
+{
+    public string? Error { get; set; }
+    public string? Payload { get; set; }
+    public ConnectionInfo? Connection { get; set; }
+}
+
+public class ConnectionInfo
+{
+    public string? Pass { get; set; }
+    public string? Key { get; set; }
 }

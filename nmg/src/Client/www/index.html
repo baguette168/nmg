@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+:root{--bg:#0e0e0e;--bg2:#141414;--bg3:#1c1c1c;--bg4:#2a2a2a;--bd:rgba(255,255,255,.08);--tx:#fafafa;--tx2:#a0a0a0;--tx3:#808080;--ok:#8bc4a4;--err:#c48b8b;--mono:Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei UI',system-ui,sans-serif;font-size:14px;color:var(--tx);background:var(--bg)}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--bg2);border-bottom:1px solid var(--bd)}
+.header h1{font-size:16px;font-weight:700}.header h1 span{color:var(--tx3);font-weight:400;font-size:13px}
+.lang-btn{background:var(--bg4);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px}
+.container{padding:24px;max-width:860px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--tx);margin-bottom:6px}
+.field .hint{font-size:11px;color:var(--tx3);margin-top:4px}
+select,input[type=text],input[type=number]{width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:8px 12px;font-size:14px;outline:none}
+select:focus,input:focus{border-color:rgba(255,255,255,.3)}
+select option{background:var(--bg3);color:var(--tx)}
+.btn-row{display:flex;gap:10px;margin-bottom:20px}
+.btn{border:none;border-radius:4px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-primary{background:#fff;color:#0e0e0e}
+.btn-secondary{background:var(--bg4);color:var(--tx)}
+.status{font-size:13px;color:var(--tx2);margin-bottom:10px;min-height:20px}
+.output-box{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;overflow:hidden}
+.output-box pre{padding:14px;font-family:var(--mono);font-size:11px;color:var(--tx2);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto}
+.meta{font-family:var(--mono);font-size:11px;color:var(--tx3);padding:8px 14px;border-top:1px solid var(--bd)}
+.conn{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:14px;margin-top:12px;display:none}
+.conn.show{display:block}
+.conn h3{font-size:13px;font-weight:600;margin-bottom:10px}
+.conn-grid{display:grid;grid-template-columns:80px 1fr;gap:6px 12px}
+.conn-grid .k{font-size:12px;color:var(--tx3)}
+.conn-grid .v{font-family:var(--mono);font-size:13px;color:var(--tx)}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>NMG <span id="sub">— .NET Memory-shell Generator</span></h1>
+<button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
+</div>
+<div class="container">
+<div class="form-grid">
+<div class="field"><label id="l_type">内存马类型</label>
+<select id="type"><option value="vpp" selected>VPP — VirtualPathProvider</option><option value="route">Route — RouteBase (MVC)</option><option value="httplistener">HttpListener — Standalone</option></select>
+<div class="hint" id="h_type">ASP.NET 管道中的注入点</div></div>
+<div class="field"><label id="l_shell">协议</label>
+<select id="shell"><option value="godzilla" selected>Godzilla 4.x — AES-128</option><option value="behinder">Behinder 4.x — AES-128</option><option value="antsword">AntSword — Base64</option></select>
+<div class="hint" id="h_shell">Webshell 管理工具通信协议</div></div>
+<div class="field"><label id="l_pass">连接密码</label>
+<input type="text" id="pass" value="p@ssw0rd">
+<div class="hint" id="h_pass">Webshell 客户端认证用</div></div>
+<div class="field"><label id="l_target">目标框架</label>
+<select id="target"><option value="net40" selected>.NET Framework 4.0</option><option value="net472">.NET Framework 4.7.2</option></select>
+<div class="hint" id="h_target">Payload 编译目标</div></div>
+<div class="field"><label id="l_format">输出格式</label>
+<select id="format"><option value="aspx" selected>ASPX Injector Page</option><option value="b64">Raw Base64</option></select>
+<div class="hint" id="h_format">Payload 投递方式</div></div>
+<div class="field"><label id="l_seed">随机种子</label>
+<input type="number" id="seed">
+<div class="hint" id="h_seed">固定种子 = 确定性输出</div></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="btnGen" onclick="doGenerate()">生成 Payload</button>
+<button class="btn btn-secondary" onclick="doCopy()">复制</button>
+<button class="btn btn-secondary" onclick="doSave()">另存为...</button>
+</div>
+<div class="status" id="status">配置参数后点击生成</div>
+<div class="output-box"><pre id="output"></pre><div class="meta" id="meta"></div></div>
+<div class="conn" id="connPanel"><h3>连接信息</h3>
+<div class="conn-grid">
+<div class="k">密码</div><div class="v" id="connPass"></div>
+<div class="k">密钥</div><div class="v" id="connKey"></div>
+<div class="k">加密</div><div class="v" id="connEnc"></div>
+</div></div>
+</div>
+<script>
+let payload='';let fmt='aspx';let cn=true;
+const T={cn:{type:'内存马类型',shell:'协议',pass:'连接密码',target:'目标框架',format:'输出格式',seed:'随机种子',ht:'ASP.NET 管道中的注入点',hs:'Webshell 管理工具通信协议',hp:'Webshell 客户端认证用',htg:'Payload 编译目标',hf:'Payload 投递方式',hsd:'固定种子 = 确定性输出',gen:'生成 Payload',ready:'配置参数后点击生成',sub:'— .NET Memory-shell Generator'},en:{type:'MEMORY SHELL TYPE',shell:'SHELL PROTOCOL',pass:'CONNECTION PASSWORD',target:'TARGET FRAMEWORK',format:'OUTPUT FORMAT',seed:'RANDOMIZATION SEED',ht:'Target injection point',hs:'Webshell manager protocol',hp:'Webshell client auth',htg:'Payload compilation target',hf:'Payload delivery method',hsd:'Fixed seed = deterministic',gen:'Generate Payload',ready:'Configure and click Generate',sub:'— .NET 内存马生成器'}};
+function toggleLang(){cn=!cn;const t=cn?T.cn:T.en;
+document.getElementById('langBtn').textContent=cn?'EN':'中文';
+document.getElementById('sub').textContent=t.sub;
+for(const[k,id]of[['type','l_type'],['shell','l_shell'],['pass','l_pass'],['target','l_target'],['format','l_format'],['seed','l_seed']])document.getElementById(id).textContent=t[k];
+for(const[k,id]of[['ht','h_type'],['hs','h_shell'],['hp','h_pass'],['htg','h_target'],['hf','h_format'],['hsd','h_seed']])document.getElementById(id).textContent=t[k];
+document.getElementById('btnGen').textContent=t.gen;
+document.getElementById('status').textContent=t.ready;}
+function setStatus(m,c){const s=document.getElementById('status');s.textContent=m;s.style.color=c==='ok'?'var(--ok)':c==='err'?'var(--err)':'var(--tx2)'}
+async function doGenerate(){
+const pass=document.getElementById('pass').value.trim();
+if(!pass){setStatus(cn?'密码不能为空':'Password required','err');return}
+document.getElementById('btnGen').disabled=true;
+setStatus(cn?'生成中...':'Generating...');
+try{
+const type=document.getElementById('type').value;
+const shell=document.getElementById('shell').value;
+const target=document.getElementById('target').value;
+const format=document.getElementById('format').value;
+const seed=parseInt(document.getElementById('seed').value)||0;
+fmt=format;
+const r=await window.chrome.webview.hostObjects.bridge.Generate(type,shell,pass,target,format,seed);
+if(r.Error){setStatus(r.Error,'err');return}
+payload=r.Payload;
+document.getElementById('output').textContent=payload;
+document.getElementById('meta').textContent=type+' | '+shell+' | '+target+' | '+payload.length+' chars';
+if(r.Connection){
+document.getElementById('connPass').textContent=r.Connection.Pass||pass;
+document.getElementById('connKey').textContent=r.Connection.Key||'';
+document.getElementById('connEnc').textContent=shell==='antsword'?'Base64':'AES-128';
+document.getElementById('connPanel').style.display='block';
+}
+setStatus(cn?'生成成功':'Success','ok');
+}catch(e){setStatus('Error: '+e.message,'err')}
+finally{document.getElementById('btnGen').disabled=false}}
+function doCopy(){if(!payload)return;navigator.clipboard.writeText(payload)}
+function doSave(){if(!payload)return;const ext=fmt==='b64'?'.b64':'.aspx';
+window.chrome.webview.hostObjects.bridge.SaveFile(payload,ext)}
+</script>
+</body>
+</html>
