@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -16,7 +16,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Api\**" />
+    <Compile Remove="Client\**" />
     <None Remove="Api\**" />
+    <None Remove="Client\**" />
   </ItemGroup>
 </Project>
 
